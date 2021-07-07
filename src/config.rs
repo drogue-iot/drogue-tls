@@ -46,6 +46,10 @@ where
     pub(crate) signature_schemes: Vec<SignatureScheme, U16>,
     pub(crate) named_groups: Vec<NamedGroup, U16>,
     pub(crate) max_fragment_length: MaxFragmentLength,
+    pub(crate) ca: Option<Certificate<'a>>,
+    pub(crate) cert: Option<Certificate<'a>>,
+    pub(crate) verify_host: bool,
+    pub(crate) verify_cert: bool,
 }
 
 #[derive(Debug)]
@@ -105,6 +109,32 @@ where
         self.config = self.config.with_server_name(server_name);
         self
     }
+
+    /* TODO: Hardcode verification to false until we can actually verify and trust server
+    /// Enable/disable verification of server certificate.
+    pub fn verify_cert(mut self, verify_cert: bool) -> Self {
+        self.config = self.config.verify_cert(verify_cert);
+        self
+    }
+
+    /// Enable/disable verification of server hostname.
+    pub fn verify_hostname(mut self, verify_hostname: bool) -> Self {
+        self.config = self.config.verify_hostname(verify_hostname);
+        self
+    }
+
+    /// Trust the provided CA.
+    pub fn with_ca(mut self, ca: Certificate<'a>) -> Self {
+        self.config = self.config.with_ca(ca);
+        self
+    }
+    */
+
+    /// Use provided cert as client certificate.
+    pub fn with_cert(mut self, cert: Certificate<'a>) -> Self {
+        self.config = self.config.with_cert(cert);
+        self
+    }
 }
 
 impl<'a, CipherSuite> TlsConfig<'a, CipherSuite>
@@ -118,6 +148,11 @@ where
             named_groups: Vec::new(),
             max_fragment_length: MaxFragmentLength::Bits10,
             server_name: None,
+            // TODO: Make defaults true
+            verify_cert: false,
+            verify_host: false,
+            ca: None,
+            cert: None,
         };
 
         //config.cipher_suites.push(CipherSuite::TlsAes128GcmSha256);
@@ -144,6 +179,26 @@ where
         self.server_name = Some(server_name);
         self
     }
+
+    pub fn verify_hostname(mut self, verify_host: bool) -> Self {
+        self.verify_host = verify_host;
+        self
+    }
+
+    pub fn verify_cert(mut self, verify_cert: bool) -> Self {
+        self.verify_cert = verify_cert;
+        self
+    }
+
+    pub fn with_ca(mut self, ca: Certificate<'a>) -> Self {
+        self.ca = Some(ca);
+        self
+    }
+
+    pub fn with_cert(mut self, cert: Certificate<'a>) -> Self {
+        self.cert = Some(cert);
+        self
+    }
 }
 
 impl<'a, CipherSuite> Default for TlsConfig<'a, CipherSuite>
@@ -153,4 +208,11 @@ where
     fn default() -> Self {
         TlsConfig::new()
     }
+}
+
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub enum Certificate<'a> {
+    X509(&'a [u8]),
+    RawPublicKey(&'a [u8]),
 }

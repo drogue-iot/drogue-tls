@@ -130,7 +130,7 @@ pub enum ServerHandshake<'a, N: ArrayLength<u8>> {
     EncryptedExtensions(EncryptedExtensions<'a>),
     NewSessionTicket(NewSessionTicket<'a>),
     Certificate(Certificate<'a>),
-    CertificateRequest(CertificateRequest),
+    CertificateRequest(CertificateRequest<'a>),
     CertificateVerify(CertificateVerify<'a>),
     Finished(Finished<N>),
 }
