@@ -63,6 +63,7 @@ pub mod blocking;
 mod buffer;
 mod certificate_types;
 mod change_cipher_spec;
+mod verify;
 mod cipher_suites;
 mod config;
 mod connection;

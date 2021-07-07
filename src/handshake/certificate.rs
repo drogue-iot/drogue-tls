@@ -7,7 +7,7 @@ use heapless::{consts::*, Vec};
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Certificate<'a> {
     request_context: &'a [u8],
-    entries: Vec<CertificateEntry<'a>, U16>,
+    pub(crate) entries: Vec<CertificateEntry<'a>, U16>,
 }
 
 impl<'a> Certificate<'a> {

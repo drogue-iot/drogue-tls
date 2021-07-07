@@ -2,6 +2,7 @@ use crate::config::{TlsCipherSuite, TlsConfig};
 use crate::handshake::{ClientHandshake, ServerHandshake};
 use crate::key_schedule::KeySchedule;
 use crate::record::{ClientRecord, RecordHeader, ServerRecord};
+use crate::verify::verify_certificate;
 use crate::{alert::*, handshake::certificate::Certificate};
 use crate::{
     traits::{Read, Write},
@@ -556,7 +557,11 @@ where
             let result = match record {
                 ServerRecord::Handshake(server_handshake) => match server_handshake {
                     ServerHandshake::EncryptedExtensions(_) => Ok(State::ServerVerify),
-                    ServerHandshake::Certificate(_) => Ok(State::ServerVerify),
+                    ServerHandshake::Certificate(certificate) => {
+                        // TODO: Get current time
+                        verify_certificate(config, certificate, 0)?;
+                        Ok(State::ServerVerify)
+                    }
                     ServerHandshake::CertificateVerify(_) => Ok(State::ServerVerify),
                     ServerHandshake::CertificateRequest(request) => {
                         let mut ctx = [0; 256];
