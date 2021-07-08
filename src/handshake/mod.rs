@@ -3,7 +3,7 @@ use heapless::ArrayLength;
 //use p256::elliptic_curve::AffinePoint;
 use crate::buffer::*;
 use crate::config::TlsCipherSuite;
-use crate::handshake::certificate::Certificate;
+use crate::handshake::certificate::CertificateRef;
 use crate::handshake::certificate_request::CertificateRequest;
 use crate::handshake::certificate_verify::CertificateVerify;
 use crate::handshake::client_hello::ClientHello;
@@ -74,7 +74,7 @@ pub enum ClientHandshake<'config, 'a, CipherSuite>
 where
     CipherSuite: TlsCipherSuite,
 {
-    ClientCert(Certificate<'a>),
+    ClientCert(CertificateRef<'a>),
     ClientHello(ClientHello<'config, CipherSuite>),
     Finished(Finished<<CipherSuite::Hash as Digest>::OutputSize>),
 }
@@ -129,7 +129,7 @@ pub enum ServerHandshake<'a, N: ArrayLength<u8>> {
     ServerHello(ServerHello<'a>),
     EncryptedExtensions(EncryptedExtensions<'a>),
     NewSessionTicket(NewSessionTicket<'a>),
-    Certificate(Certificate<'a>),
+    Certificate(CertificateRef<'a>),
     CertificateRequest(CertificateRequest<'a>),
     CertificateVerify(CertificateVerify<'a>),
     Finished(Finished<N>),
@@ -208,7 +208,7 @@ impl<'a, N: ArrayLength<u8>> ServerHandshake<'a, N> {
                 ))
             }
             HandshakeType::Certificate => {
-                Ok(ServerHandshake::Certificate(Certificate::parse(buf)?))
+                Ok(ServerHandshake::Certificate(CertificateRef::parse(buf)?))
             }
 
             HandshakeType::CertificateRequest => Ok(ServerHandshake::CertificateRequest(

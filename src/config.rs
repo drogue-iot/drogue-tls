@@ -116,13 +116,11 @@ where
         self
     }
 
-    /* TODO: Hardcode verification to false until we can actually verify and trust server
     /// Enable/disable verification of server hostname.
     pub fn verify_hostname(mut self, verify_hostname: bool) -> Self {
         self.config = self.config.verify_hostname(verify_hostname);
         self
     }
-    */
 
     /// Trust the provided CA.
     pub fn with_ca(mut self, ca: Certificate<'a>) -> Self {
@@ -173,9 +171,10 @@ where
         */
         config
             .signature_schemes
-            .push(SignatureScheme::EcdsaSecp384r1Sha384);
+            .push(SignatureScheme::EcdsaSecp256r1Sha256)
+            .unwrap();
 
-        config.named_groups.push(NamedGroup::Secp384r1).unwrap();
+        config.named_groups.push(NamedGroup::Secp256r1).unwrap();
 
         config
     }

@@ -3,7 +3,7 @@ use crate::handshake::{ClientHandshake, ServerHandshake};
 use crate::key_schedule::KeySchedule;
 use crate::record::{ClientRecord, RecordHeader, ServerRecord};
 use crate::verify::verify_certificate;
-use crate::{alert::*, handshake::certificate::Certificate};
+use crate::{alert::*, handshake::certificate::CertificateRef};
 use crate::{
     traits::{Read, Write},
     TlsError,
@@ -269,6 +269,7 @@ where
     traffic_hash: Option<CipherSuite::Hash>,
     secret: Option<EphemeralSecret>,
     cert_request_context: Option<(usize, [u8; 256])>,
+    server_cert_data: Option<(usize, [u8; 1024])>,
 }
 
 impl<'a, CipherSuite> Handshake<CipherSuite>
@@ -280,6 +281,7 @@ where
             traffic_hash: None,
             secret: None,
             cert_request_context: None,
+            server_cert_data: None,
         }
     }
 }
@@ -361,7 +363,7 @@ impl<'a> State {
                     .take()
                     .ok_or(TlsError::InvalidHandshake)?;
 
-                let mut certificate = Certificate::with_context(&ctx[..ctx_len]);
+                let mut certificate = CertificateRef::with_context(&ctx[..ctx_len]);
                 if let Some(cert) = &config.cert {
                     certificate.add(cert.clone().into())?;
                 }
@@ -470,7 +472,7 @@ impl<'a> State {
                     .take()
                     .ok_or(TlsError::InvalidHandshake)?;
 
-                let mut certificate = Certificate::with_context(&ctx[..ctx_len]);
+                let mut certificate = CertificateRef::with_context(&ctx[..ctx_len]);
                 if let Some(cert) = &config.cert {
                     certificate.add(cert.clone().into())?;
                 }
@@ -560,7 +562,7 @@ where
                     ServerHandshake::Certificate(certificate) => {
                         // TODO: Get current time
                         info!("Verifying certificate!");
-                        verify_certificate(config, certificate, 1625692490)?;
+                        verify_certificate(config, certificate, 1625751614)?;
                         Ok(State::ServerVerify)
                     }
                     ServerHandshake::CertificateVerify(_) => Ok(State::ServerVerify),

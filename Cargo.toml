@@ -28,6 +28,7 @@ heapless = "0.6"
 generic-array = "0.14"
 nom = { version = "6.1.2", default-features = false }
 webpki = { version = "0.22.0", default-features = false }
+der-parser = "5.1.0"
 
 # Logging alternatives
 log = { version = "0.4", optional = true }

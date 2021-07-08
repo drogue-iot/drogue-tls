@@ -24,6 +24,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let tls_context = TlsContext::new(OsRng, &mut record_buffer)
         .with_ca(Certificate::X509(&der[..]))
         .with_server_name("localhost")
+        .verify_hostname(true)
         .verify_cert(true);
     let mut tls: TlsConnection<OsRng, TcpStream, Aes128GcmSha256> =
         TlsConnection::new(tls_context, stream);

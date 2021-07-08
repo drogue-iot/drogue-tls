@@ -5,12 +5,12 @@ use heapless::{consts::*, Vec};
 
 #[derive(Debug)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub struct Certificate<'a> {
+pub struct CertificateRef<'a> {
     request_context: &'a [u8],
-    pub(crate) entries: Vec<CertificateEntry<'a>, U16>,
+    pub(crate) entries: Vec<CertificateEntryRef<'a>, U16>,
 }
 
-impl<'a> Certificate<'a> {
+impl<'a> CertificateRef<'a> {
     pub fn with_context(request_context: &'a [u8]) -> Self {
         Self {
             request_context,
@@ -18,7 +18,7 @@ impl<'a> Certificate<'a> {
         }
     }
 
-    pub fn add(&mut self, entry: CertificateEntry<'a>) -> Result<(), TlsError> {
+    pub fn add(&mut self, entry: CertificateEntryRef<'a>) -> Result<(), TlsError> {
         self.entries
             .push(entry)
             .map_err(|_| TlsError::InsufficientSpace)
@@ -34,7 +34,7 @@ impl<'a> Certificate<'a> {
             .slice(entries_len as usize)
             .map_err(|_| TlsError::InvalidCertificate)?;
 
-        let entries = CertificateEntry::parse_vector(&mut entries)?;
+        let entries = CertificateEntryRef::parse_vector(&mut entries)?;
 
         Ok(Self {
             request_context: request_context.as_slice(),
@@ -58,15 +58,15 @@ impl<'a> Certificate<'a> {
 
 #[derive(Debug)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub enum CertificateEntry<'a> {
+pub enum CertificateEntryRef<'a> {
     X509(&'a [u8]),
     RawPublicKey(&'a [u8]),
 }
 
-impl<'a> CertificateEntry<'a> {
+impl<'a> CertificateEntryRef<'a> {
     pub fn parse_vector(
         buf: &mut ParseBuffer<'a>,
-    ) -> Result<Vec<CertificateEntry<'a>, U16>, TlsError> {
+    ) -> Result<Vec<CertificateEntryRef<'a>, U16>, TlsError> {
         let mut entries = Vec::new();
         loop {
             let entry_len = buf.read_u24().map_err(|_| TlsError::InvalidCertificate)?;
@@ -79,7 +79,7 @@ impl<'a> CertificateEntry<'a> {
             // let cert: Result<Vec<u8, _>, ()> = Ok(Vec::new());
 
             entries
-                .push(CertificateEntry::X509(cert.as_slice()))
+                .push(CertificateEntryRef::X509(cert.as_slice()))
                 .map_err(|_| TlsError::DecodeError)?;
 
             let _extensions_len = buf
@@ -108,11 +108,11 @@ impl<'a> CertificateEntry<'a> {
     }
 }
 
-impl<'a> From<crate::config::Certificate<'a>> for CertificateEntry<'a> {
+impl<'a> From<crate::config::Certificate<'a>> for CertificateEntryRef<'a> {
     fn from(cert: crate::config::Certificate<'a>) -> Self {
         match cert {
-            crate::Certificate::X509(data) => CertificateEntry::X509(data),
-            crate::Certificate::RawPublicKey(data) => CertificateEntry::RawPublicKey(data),
+            crate::Certificate::X509(data) => CertificateEntryRef::X509(data),
+            crate::Certificate::RawPublicKey(data) => CertificateEntryRef::RawPublicKey(data),
         }
     }
 }
