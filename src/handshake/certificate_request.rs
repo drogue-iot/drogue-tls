@@ -3,12 +3,14 @@ use crate::TlsError;
 
 #[derive(Debug)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub struct CertificateRequest {}
+pub struct CertificateRequest<'a> {
+    pub(crate) request_context: &'a [u8],
+}
 
-impl CertificateRequest {
-    pub fn parse(buf: &mut ParseBuffer) -> Result<Self, TlsError> {
+impl<'a> CertificateRequest<'a> {
+    pub fn parse(buf: &mut ParseBuffer<'a>) -> Result<CertificateRequest<'a>, TlsError> {
         let request_context_len = buf.read_u8().map_err(|_| TlsError::InvalidCertificate)?;
-        let _request_context = buf
+        let request_context = buf
             .slice(request_context_len as usize)
             .map_err(|_| TlsError::InvalidCertificate)?;
 
@@ -24,6 +26,8 @@ impl CertificateRequest {
         //let extensions = ServerExtension::parse_vector(buf)?;
         //info!("Cert request parsing done");
 
-        Ok(Self {})
+        Ok(Self {
+            request_context: request_context.as_slice(),
+        })
     }
 }

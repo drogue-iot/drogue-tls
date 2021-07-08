@@ -2,7 +2,8 @@ use crate::config::{TlsCipherSuite, TlsConfig};
 use crate::handshake::{ClientHandshake, ServerHandshake};
 use crate::key_schedule::KeySchedule;
 use crate::record::{ClientRecord, RecordHeader, ServerRecord};
-use crate::{alert::*, handshake::certificate::Certificate};
+use crate::verify::verify_certificate;
+use crate::{alert::*, handshake::certificate::CertificateRef};
 use crate::{
     traits::{Read, Write},
     TlsError,
@@ -267,6 +268,8 @@ where
 {
     traffic_hash: Option<CipherSuite::Hash>,
     secret: Option<EphemeralSecret>,
+    cert_request_context: Option<(usize, [u8; 256])>,
+    server_cert_data: Option<(usize, [u8; 1024])>,
 }
 
 impl<'a, CipherSuite> Handshake<CipherSuite>
@@ -277,6 +280,8 @@ where
         Handshake {
             traffic_hash: None,
             secret: None,
+            cert_request_context: None,
+            server_cert_data: None,
         }
     }
 }
@@ -341,14 +346,28 @@ impl<'a> State {
                     decode_record::<Transport, CipherSuite>(transport, record_buf, key_schedule)
                         .await?;
 
-                Ok(process_server_verify(handshake, key_schedule, record)?)
+                Ok(process_server_verify(
+                    handshake,
+                    key_schedule,
+                    config,
+                    record,
+                )?)
             }
             State::ClientCert => {
                 handshake
                     .traffic_hash
                     .replace(key_schedule.transcript_hash().clone());
 
-                let client_handshake = ClientHandshake::ClientCert(Certificate::new());
+                let (ctx_len, ctx) = handshake
+                    .cert_request_context
+                    .take()
+                    .ok_or(TlsError::InvalidHandshake)?;
+
+                let mut certificate = CertificateRef::with_context(&ctx[..ctx_len]);
+                if let Some(cert) = &config.cert {
+                    certificate.add(cert.clone().into())?;
+                }
+                let client_handshake = ClientHandshake::ClientCert(certificate);
                 let client_cert: ClientRecord<'a, '_, CipherSuite> =
                     ClientRecord::Handshake(client_handshake, true);
 
@@ -436,14 +455,28 @@ impl<'a> State {
                     key_schedule,
                 )?;
 
-                Ok(process_server_verify(handshake, key_schedule, record)?)
+                Ok(process_server_verify(
+                    handshake,
+                    key_schedule,
+                    config,
+                    record,
+                )?)
             }
             State::ClientCert => {
                 handshake
                     .traffic_hash
                     .replace(key_schedule.transcript_hash().clone());
 
-                let client_handshake = ClientHandshake::ClientCert(Certificate::new());
+                let (ctx_len, ctx) = handshake
+                    .cert_request_context
+                    .take()
+                    .ok_or(TlsError::InvalidHandshake)?;
+
+                let mut certificate = CertificateRef::with_context(&ctx[..ctx_len]);
+                if let Some(cert) = &config.cert {
+                    certificate.add(cert.clone().into())?;
+                }
+                let client_handshake = ClientHandshake::ClientCert(certificate);
                 let client_cert: ClientRecord<'a, '_, CipherSuite> =
                     ClientRecord::Handshake(client_handshake, true);
 
@@ -507,9 +540,10 @@ where
     }
 }
 
-fn process_server_verify<CipherSuite>(
+fn process_server_verify<'a, CipherSuite>(
     handshake: &mut Handshake<CipherSuite>,
     key_schedule: &mut KeySchedule<CipherSuite::Hash, CipherSuite::KeyLen, CipherSuite::IvLen>,
+    config: &TlsConfig<'a, CipherSuite>,
     record: ServerRecord<'_, <CipherSuite::Hash as FixedOutput>::OutputSize>,
 ) -> Result<State, TlsError>
 where
@@ -525,9 +559,20 @@ where
             let result = match record {
                 ServerRecord::Handshake(server_handshake) => match server_handshake {
                     ServerHandshake::EncryptedExtensions(_) => Ok(State::ServerVerify),
-                    ServerHandshake::Certificate(_) => Ok(State::ServerVerify),
+                    ServerHandshake::Certificate(certificate) => {
+                        // TODO: Get current time
+                        info!("Verifying certificate!");
+                        verify_certificate(config, certificate, 1625751614)?;
+                        Ok(State::ServerVerify)
+                    }
                     ServerHandshake::CertificateVerify(_) => Ok(State::ServerVerify),
-                    ServerHandshake::CertificateRequest(_) => {
+                    ServerHandshake::CertificateRequest(request) => {
+                        let mut ctx = [0; 256];
+                        let len = request.request_context.len();
+                        ctx[..len].copy_from_slice(&request.request_context[..len]);
+                        handshake
+                            .cert_request_context
+                            .replace((request.request_context.len(), ctx));
                         cert_requested = true;
                         Ok(State::ServerVerify)
                     }
