@@ -110,25 +110,25 @@ where
         self
     }
 
-    /* TODO: Hardcode verification to false until we can actually verify and trust server
     /// Enable/disable verification of server certificate.
     pub fn verify_cert(mut self, verify_cert: bool) -> Self {
         self.config = self.config.verify_cert(verify_cert);
         self
     }
 
+    /* TODO: Hardcode verification to false until we can actually verify and trust server
     /// Enable/disable verification of server hostname.
     pub fn verify_hostname(mut self, verify_hostname: bool) -> Self {
         self.config = self.config.verify_hostname(verify_hostname);
         self
     }
+    */
 
     /// Trust the provided CA.
     pub fn with_ca(mut self, ca: Certificate<'a>) -> Self {
         self.config = self.config.with_ca(ca);
         self
     }
-    */
 
     /// Use provided cert as client certificate.
     pub fn with_cert(mut self, cert: Certificate<'a>) -> Self {

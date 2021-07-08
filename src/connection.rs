@@ -559,7 +559,8 @@ where
                     ServerHandshake::EncryptedExtensions(_) => Ok(State::ServerVerify),
                     ServerHandshake::Certificate(certificate) => {
                         // TODO: Get current time
-                        verify_certificate(config, certificate, 0)?;
+                        info!("Verifying certificate!");
+                        verify_certificate(config, certificate, 1625692490)?;
                         Ok(State::ServerVerify)
                     }
                     ServerHandshake::CertificateVerify(_) => Ok(State::ServerVerify),
