@@ -2,7 +2,6 @@ use crate::config::{Certificate, TlsCipherSuite, TlsConfig};
 use crate::handshake::certificate::{CertificateEntryRef, CertificateRef as ServerCertificate};
 use crate::TlsError;
 use core::convert::TryFrom;
-use der_parser::der::parse_der;
 use webpki::DnsNameRef;
 
 static ALL_SIGALGS: &[&webpki::SignatureAlgorithm] = &[
@@ -40,9 +39,6 @@ where
             if !certificate.entries.is_empty() {
                 // TODO: Support intermediates...
                 if let CertificateEntryRef::X509(certificate) = certificate.entries[0] {
-                    info!("Doing der parsing");
-                    parse_der(certificate).map_err(|e| info!("Error parsing der: {:?}", e));
-
                     info!("Loading certificate with len {}", certificate.len());
                     info!("Certificate: {:?}", certificate);
                     let cert = webpki::EndEntityCert::try_from(certificate).map_err(|e| {
