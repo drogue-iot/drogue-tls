@@ -157,6 +157,7 @@ where
 
         //config.cipher_suites.push(CipherSuite::TlsAes128GcmSha256);
 
+        /*
         config
             .signature_schemes
             .push(SignatureScheme::RsaPssRsaeSha256)
@@ -169,8 +170,12 @@ where
             .signature_schemes
             .push(SignatureScheme::RsaPssRsaeSha512)
             .unwrap();
+        */
+        config
+            .signature_schemes
+            .push(SignatureScheme::EcdsaSecp384r1Sha384);
 
-        config.named_groups.push(NamedGroup::Secp256r1).unwrap();
+        config.named_groups.push(NamedGroup::Secp384r1).unwrap();
 
         config
     }

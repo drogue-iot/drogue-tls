@@ -34,11 +34,17 @@ where
             let anchors = webpki::TlsServerTrustAnchors(anchors);
             let time = webpki::Time::from_seconds_since_unix_epoch(now);
 
+            info!("We got {} certificate entries", certificate.entries.len());
+
             if !certificate.entries.is_empty() {
                 // TODO: Support intermediates...
                 if let CertificateEntry::X509(certificate) = certificate.entries[0] {
-                    let cert = webpki::EndEntityCert::try_from(certificate)
-                        .map_err(|_| TlsError::DecodeError)?;
+                    info!("Loading certificate with len {}", certificate.len());
+                    let cert = webpki::EndEntityCert::try_from(certificate).map_err(|e| {
+                        info!("Error loading cert: {:?}", e);
+                        TlsError::DecodeError
+                    })?;
+                    info!("Certificate is loaded!");
                     match cert.verify_is_valid_tls_server_cert(ALL_SIGALGS, &anchors, &[], time) {
                         Ok(_) => verified = true,
                         Err(e) => {

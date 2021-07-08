@@ -36,6 +36,13 @@ async fn test_ping() {
     use drogue_tls::*;
     use tokio::net::TcpStream;
     let addr = setup();
+    let pem = include_str!("testcert.pem");
+    log::info!("Pem size: {}", pem.len());
+
+    let der = pem_parser::pem_to_der(pem);
+
+    log::info!("DER length: {}", der.len());
+
     let stream = TcpStream::connect(addr)
         .await
         .expect("error connecting to server");
@@ -43,7 +50,7 @@ async fn test_ping() {
     log::info!("Connected");
     let mut record_buffer = [0; 16384];
     let tls_context = TlsContext::new(OsRng, &mut record_buffer)
-        .with_ca(Certificate::X509(include_bytes!("testcert.pem")))
+        .with_ca(Certificate::X509(&der[..]))
         .with_server_name("localhost")
         .verify_cert(true);
     let mut tls: TlsConnection<OsRng, TcpStream, Aes128GcmSha256> =
